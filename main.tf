@@ -6,7 +6,11 @@ provider "aws" {
 # Create a key pair to access the EC2 instance (replace with your preferred key name)
 resource "aws_key_pair" "terraform_key" {
   key_name   = "terraform_key"
-  public_key = file("~/.ssh/id_rsa.pub")  # Path to your SSH public key
+  public_key = var.ssh_public_key
+}
+
+variable "ssh_public_key" {
+  type = string
 }
 
 # Create a security group to allow SSH and HTTP
