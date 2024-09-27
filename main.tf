@@ -5,7 +5,7 @@ provider "aws" {
 
 # Create a key pair to access the EC2 instance (replace with your preferred key name)
 resource "aws_key_pair" "terraform_key" {
-  key_name   = "new_terraform_key"
+  key_name   = "terraform_key2"
   public_key = var.ssh_public_key
 }
 
@@ -15,7 +15,7 @@ variable "ssh_public_key" {
 
 # Create a security group to allow SSH and HTTP
 resource "aws_security_group" "allow_ssh_http" {
-  name        = "allow_ssh_http_new"
+  name        = "allow_ssh_http2"
   
   ingress {
     from_port   = 22  # Allow SSH
