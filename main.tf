@@ -1,4 +1,4 @@
-# Provider block - specifies you're using AWS
+# Provider block - specifies you're using Amazon Web Servers
 provider "aws" {
   region = "us-west-2"  # Replace with your preferred AWS region
 }
