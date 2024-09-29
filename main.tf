@@ -61,10 +61,10 @@ resource "aws_security_group" "allow_ssh_http_airflow" {
   }
 }
 
-# Define local variables to choose either the existing or the new security group
+# Define local variables to choose either the existing or the new key pair and security group
 locals {
-  key_name            = length(data.aws_key_pair.existing_key.id) > 0 ? data.aws_key_pair.existing_key.key_name : aws_key_pair.terraform_key.key_name
-  security_group_id   = length(data.aws_security_group.existing_sg.id) > 0 ? data.aws_security_group.existing_sg.id : aws_security_group.allow_ssh_http_airflow[0].id
+  key_name          = length(data.aws_key_pair.existing_key.id) > 0 ? data.aws_key_pair.existing_key.key_name : aws_key_pair.terraform_key[0].key_name
+  security_group_id = length(data.aws_security_group.existing_sg.id) > 0 ? data.aws_security_group.existing_sg.id : aws_security_group.allow_ssh_http_airflow[0].id
 }
 
 # Create an EC2 instance
