@@ -46,16 +46,19 @@ resource "aws_security_group" "allow_ssh_http_airflow" {
   }
 }
 
-# Create a new EC2 instance only if no existing instance is found
+# Create an EC2 instance
 resource "aws_instance" "my_ec2_instance" {
-  count = length(data.aws_instance.existing_instance.id) == 0 ? 1 : 0
-
   ami           = "ami-05134c8ef96964280"  # Replace with a valid AMI ID for your region
   instance_type = "t2.micro"
 
   # Associate the key pair and security group
   key_name      = aws_key_pair.terraform_key.key_name
-  security_groups = [aws_security_group.allow_ssh_http_airflow.name]
+  security_groups = [aws_security_group.allow_ssh_http.name]
+
+  # Tags for better management
+  tags = {
+    Name = "MyTerraformEC2Instance"
+  }
 
   # User data script to install Apache Airflow
   user_data = <<-EOF
@@ -81,7 +84,7 @@ resource "aws_instance" "my_ec2_instance" {
   }
 }
 
-# Output the public IP of the EC2 instance (whether reused or newly created)
+# Output the public IP of the EC2 instance
 output "ec2_public_ip" {
-  value = length(data.aws_instance.existing_instance.id) != 0 ? data.aws_instance.existing_instance.public_ip : aws_instance.my_ec2_instance[0].public_ip
+  value = aws_instance.my_ec2_instance.public_ip
 }
