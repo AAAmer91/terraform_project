@@ -66,12 +66,13 @@ resource "aws_instance" "my_ec2_instance" {
   ami           = "ami-05134c8ef96964280"  # Replace with a valid AMI ID for your region
   instance_type = "t2.micro"
 
-  # Associate the key pair and security group
-  key_name = length(data.aws_key_pair.existing_key.id) == 0 ? aws_key_pair.terraform_key.key_name : data.aws_key_pair.existing_key.key_name
+  # Associate the key pair: if the existing key pair is found, use it; otherwise, use the newly created key pair
+  key_name = length(data.aws_key_pair.existing_key.id) > 0 ? data.aws_key_pair.existing_key.key_name : aws_key_pair.terraform_key.key_name
 
-  vpc_security_group_ids = length(data.aws_security_group.existing_sg.id) == 0
-    ? [aws_security_group.allow_ssh_http_airflow.id]
-    : [data.aws_security_group.existing_sg.id]
+  # Use the existing security group if found, otherwise use the newly created security group
+  vpc_security_group_ids = length(data.aws_security_group.existing_sg.id) > 0
+    ? [data.aws_security_group.existing_sg.id]
+    : [aws_security_group.allow_ssh_http_airflow[0].id]  # Since it uses count, need to reference as an array
 
   # Tags for better management
   tags = {
