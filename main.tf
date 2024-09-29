@@ -78,10 +78,6 @@ resource "aws_instance" "my_ec2_instance" {
     nohup airflow webserver --port 8080 &  # Starts webserver on port 8080
     nohup airflow scheduler &  # Starts the scheduler
   EOF
-
-  tags = {
-    Name = "MyTerraformEC2Instance"
-  }
 }
 
 # Output the public IP of the EC2 instance
