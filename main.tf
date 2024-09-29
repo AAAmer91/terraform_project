@@ -61,18 +61,22 @@ resource "aws_security_group" "allow_ssh_http_airflow" {
   }
 }
 
+# Define local variables to choose either the existing or the new security group
+locals {
+  key_name            = length(data.aws_key_pair.existing_key.id) > 0 ? data.aws_key_pair.existing_key.key_name : aws_key_pair.terraform_key.key_name
+  security_group_id   = length(data.aws_security_group.existing_sg.id) > 0 ? data.aws_security_group.existing_sg.id : aws_security_group.allow_ssh_http_airflow[0].id
+}
+
 # Create an EC2 instance
 resource "aws_instance" "my_ec2_instance" {
   ami           = "ami-05134c8ef96964280"  # Replace with a valid AMI ID for your region
   instance_type = "t2.micro"
 
-  # Associate the key pair: if the existing key pair is found, use it; otherwise, use the newly created key pair
-  key_name = length(data.aws_key_pair.existing_key.id) > 0 ? data.aws_key_pair.existing_key.key_name : aws_key_pair.terraform_key.key_name
+  # Use the local variable for key_name
+  key_name = local.key_name
 
-  # Use the existing security group if found, otherwise use the newly created security group
-  vpc_security_group_ids = length(data.aws_security_group.existing_sg.id) > 0
-    ? [data.aws_security_group.existing_sg.id]
-    : [aws_security_group.allow_ssh_http_airflow[0].id]  # Since it uses count, need to reference as an array
+  # Use the local variable for security group ID
+  vpc_security_group_ids = [local.security_group_id]
 
   # Tags for better management
   tags = {
