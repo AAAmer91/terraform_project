@@ -46,26 +46,6 @@ resource "aws_security_group" "allow_ssh_http_airflow" {
   }
 }
 
-# Data block to find any existing EC2 instance by tag and instance type
-data "aws_instance" "existing_instance" {
-  filter {
-    name   = "tag:Name"
-    values = ["MyTerraformEC2Instance"]
-  }
-
-  # Add more constraints to filter to a single instance
-  filter {
-    name   = "instance-type"
-    values = ["t2.micro"]  # Use the exact instance type of the existing instance
-  }
-
-  # Optional: Add more filters based on availability zone or other attributes
-  filter {
-    name   = "availability-zone"
-    values = ["us-west-2a"]  # Specify the availability zone if needed
-  }
-}
-
 # Create a new EC2 instance only if no existing instance is found
 resource "aws_instance" "my_ec2_instance" {
   count = length(data.aws_instance.existing_instance.id) == 0 ? 1 : 0
