@@ -3,9 +3,15 @@ provider "aws" {
   region = "us-west-2"  # Replace with your preferred AWS region
 }
 
-# Create a key pair to access the EC2 instance (replace with your preferred key name)
+# Use an existing key pair if it exists
+data "aws_key_pair" "existing_key" {
+  key_name = "terraform_key"  # Replace with the key name you want to check for
+}
+
+# If the key pair exists, use it, otherwise create a new one
 resource "aws_key_pair" "terraform_key" {
-  key_name   = "terraform_key"
+  count      = length(data.aws_key_pair.existing_key.id) == 0 ? 1 : 0
+  key_name   = "terraform_key"  # Replace with your preferred key name
   public_key = var.ssh_public_key
 }
 
@@ -13,10 +19,19 @@ variable "ssh_public_key" {
   type = string
 }
 
-# Create a security group to allow SSH, HTTP, and Airflow (8080)
+# Use an existing security group if it exists
+data "aws_security_group" "existing_sg" {
+  filter {
+    name   = "group-name"
+    values = ["allow_ssh_http_airflow"]
+  }
+}
+
+# If the security group exists, use it, otherwise create a new one
 resource "aws_security_group" "allow_ssh_http_airflow" {
-  name        = "allow_ssh_http_airflow"
-  
+  count = length(data.aws_security_group.existing_sg.id) == 0 ? 1 : 0
+  name  = "allow_ssh_http_airflow"
+
   ingress {
     from_port   = 22  # Allow SSH
     to_port     = 22
@@ -52,8 +67,11 @@ resource "aws_instance" "my_ec2_instance" {
   instance_type = "t2.micro"
 
   # Associate the key pair and security group
-  key_name      = aws_key_pair.terraform_key.key_name
-  security_groups = [aws_security_group.allow_ssh_http_airflow.name]
+  key_name = length(data.aws_key_pair.existing_key.id) == 0 ? aws_key_pair.terraform_key.key_name : data.aws_key_pair.existing_key.key_name
+
+  vpc_security_group_ids = length(data.aws_security_group.existing_sg.id) == 0
+    ? [aws_security_group.allow_ssh_http_airflow.id]
+    : [data.aws_security_group.existing_sg.id]
 
   # Tags for better management
   tags = {
