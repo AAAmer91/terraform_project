@@ -91,5 +91,5 @@ resource "aws_instance" "my_ec2_instance" {
 
 # Output the public IP of the EC2 instance (whether reused or newly created)
 output "ec2_public_ip" {
-  value = data.aws_instance.existing_instance.id != "" ? data.aws_instance.existing_instance.public_ip : aws_instance.my_ec2_instance.public_ip
+  value = data.aws_instance.existing_instance.id != "" ? data.aws_instance.existing_instance.public_ip : aws_instance.my_ec2_instance[0].public_ip
 }
