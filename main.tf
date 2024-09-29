@@ -53,7 +53,7 @@ resource "aws_instance" "my_ec2_instance" {
 
   # Associate the key pair and security group
   key_name      = aws_key_pair.terraform_key.key_name
-  security_groups = [aws_security_group.allow_ssh_http.name]
+  security_groups = [aws_security_group.allow_ssh_http_airflow.name]
 
   # Tags for better management
   tags = {
