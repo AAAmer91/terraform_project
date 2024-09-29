@@ -13,7 +13,7 @@ variable "ssh_public_key" {
   type = string
 }
 
-# Create a security group to allow SSH and HTTP
+# Create a security group to allow SSH, HTTP, and Airflow (8080)
 resource "aws_security_group" "allow_ssh_http_airflow" {
   name        = "allow_ssh_http_airflow"
   
@@ -46,17 +46,29 @@ resource "aws_security_group" "allow_ssh_http_airflow" {
   }
 }
 
-# Data block to find any existing EC2 instance by tag
+# Data block to find any existing EC2 instance by tag and instance type
 data "aws_instance" "existing_instance" {
   filter {
     name   = "tag:Name"
     values = ["MyTerraformEC2Instance"]
   }
+
+  # Add more constraints to filter to a single instance
+  filter {
+    name   = "instance-type"
+    values = ["t2.micro"]  # Use the exact instance type of the existing instance
+  }
+
+  # Optional: Add more filters based on availability zone or other attributes
+  filter {
+    name   = "availability-zone"
+    values = ["us-west-2a"]  # Specify the availability zone if needed
+  }
 }
 
 # Create a new EC2 instance only if no existing instance is found
 resource "aws_instance" "my_ec2_instance" {
-  count = data.aws_instance.existing_instance.id == "" ? 1 : 0
+  count = length(data.aws_instance.existing_instance.id) == 0 ? 1 : 0
 
   ami           = "ami-05134c8ef96964280"  # Replace with a valid AMI ID for your region
   instance_type = "t2.micro"
@@ -91,5 +103,5 @@ resource "aws_instance" "my_ec2_instance" {
 
 # Output the public IP of the EC2 instance (whether reused or newly created)
 output "ec2_public_ip" {
-  value = data.aws_instance.existing_instance.id != "" ? data.aws_instance.existing_instance.public_ip : aws_instance.my_ec2_instance[0].public_ip
+  value = length(data.aws_instance.existing_instance.id) != 0 ? data.aws_instance.existing_instance.public_ip : aws_instance.my_ec2_instance[0].public_ip
 }
