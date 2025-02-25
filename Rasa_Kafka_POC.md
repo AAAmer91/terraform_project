@@ -1,5 +1,3 @@
-<details> <summary>Click to expand the Markdown content</summary>
-
 # Rasa + Kafka POC
 
 ## 1. System Preparation
@@ -11,7 +9,7 @@ On **Ubuntu** or **WSL**:
 ```bash
 sudo apt update
 sudo apt install python3 python3-pip
-
+```
 (Optional) Create a virtual environment:
 
 python3 -m venv venv
@@ -278,5 +276,3 @@ Next Steps might include:
     Logging events from Kafka into a database (Elasticsearch, PostgreSQL).
     Analytics: building dashboards based on conversation data.
     Production deployment with CI/CD, advanced security, load balancing.
-
-</details>
