@@ -1,53 +1,60 @@
-# Rasa + Kafka POC
+# System Preparation and Rasa-Kafka Integration
 
 ## 1. System Preparation
 
 ### 1.1 Install Required Packages
 
-On **Ubuntu** or **WSL**:
+On Ubuntu or WSL:
 
+#### Python 3.7+ (usually pre-installed). If needed:
 ```bash
 sudo apt update
 sudo apt install python3 python3-pip
 ```
-(Optional) Create a virtual environment:
 
+#### (Optional) Create a virtual environment:
+```bash
 python3 -m venv venv
 source venv/bin/activate
+```
 
-Install Rasa:
-
+#### Install Rasa:
+```bash
 pip install --upgrade pip
 pip install rasa
+```
 
-Install Docker
+#### Install Docker
 
-Follow Docker Engine Install Docs for your system.
-
-After installation, add your user to the docker group and restart your shell:
-
+- Docker Engine Install Docs  
+- After installation, add your user to the docker group and restart your shell:
+```bash
 sudo usermod -aG docker $USER
+```
 
-Install Docker Compose (v2)
-
-It usually comes bundled with Docker Desktop or the Docker engine on Ubuntu. Verify:
-
+#### Install Docker Compose (v2)
+It usually comes bundled with Docker Desktop or the Docker engine on Ubuntu. Verify with:
+```bash
 docker compose version
-
+```
 If you see a version output, you’re set.
-2. Create a Minimal Rasa Project
 
-Create a project folder:
+## 2. Create a Minimal Rasa Project
 
+#### Create a project folder:
+```bash
 mkdir rasa-kafka-poc
 cd rasa-kafka-poc
+```
 
-Initialize Rasa (accepts defaults):
-
+#### Initialize Rasa:
+```bash
 rasa init --no-prompt
+```
 
 This creates a basic structure:
 
+```
 rasa-kafka-poc/
   ├── actions/
   ├── data/
@@ -57,15 +64,17 @@ rasa-kafka-poc/
   ├── config.yml
   ├── endpoints.yml
   └── credentials.yml
+```
 
-Train the default model:
-
+#### Train the default model:
+```bash
 rasa train
+```
 
-3. Docker Compose for Kafka (Plaintext)
+## 3. Docker Compose for Kafka (Plaintext)
 
-Create a docker-compose.yml in the same folder (rasa-kafka-poc):
-
+#### Create `docker-compose.yml` in the same folder:
+```yaml
 version: '3.8'
 services:
   zookeeper:
@@ -85,24 +94,29 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      # No SASL (PLAINTEXT)
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+```
 
-Spin up Kafka & Zookeeper:
-
+#### Spin up Kafka & Zookeeper:
+```bash
 docker compose up -d
+```
 
-Check logs (optional) to confirm Kafka started successfully:
-
+#### Check logs (optional):
+```bash
 docker compose logs -f kafka
+```
 
-4. Modify Rasa Files for a Custom Math Action & Kafka Events
-4.1 actions.py (Example Math Solver)
+Confirm Kafka started successfully without errors.
 
-In your project folder, open or create actions.py (inside actions/ if you prefer). Below is an example custom action that handles basic arithmetic plus a square root demonstration, using sympy:
+## 4. Modify Rasa Files for a Custom Math Action & Kafka Events
 
+### 4.1 `actions.py` (Example Math Solver)
+
+#### Create or modify `actions.py` inside the `actions/` folder with the following code:
+```python
 from typing import Any, Text, Dict, List
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
@@ -110,20 +124,12 @@ import sympy as sp
 import re
 
 class ActionSolveMath(Action):
-
     def name(self) -> Text:
         return "action_solve_math"
 
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: Dict[Text, Any]
-    ) -> List[Dict[Text, Any]]:
-        
+    def run(self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
         user_message = tracker.latest_message['text'].lower()
         
-        # Quick check if user typed something like "square root of 16"
         if "square root of" in user_message:
             match = re.search(r"square root of (\d+)", user_message)
             if match:
@@ -132,8 +138,6 @@ class ActionSolveMath(Action):
                 dispatcher.utter_message(text=f"The square root of {number} is {result}")
                 return []
         
-        # For other expressions (2+2, 3*5, etc.)
-        # Extract digits and operators
         expression = re.findall(r"[\d\+\-\*\/\(\)\^\.]+", user_message)
         if expression:
             expr_str = "".join(expression)
@@ -147,37 +151,42 @@ class ActionSolveMath(Action):
             dispatcher.utter_message(text="I didn't understand the math expression.")
         
         return []
+```
 
-    Important: Install Sympy if needed:
-
+#### Install Sympy if needed:
+```bash
 pip install sympy
+```
 
-4.2 domain.yml
+### 4.2 `domain.yml`
 
-Register your custom action in domain.yml:
-
+#### Register your custom action in `domain.yml`:
+```yaml
 actions:
   - action_solve_math
+```
 
-4.3 endpoints.yml
+### 4.3 `endpoints.yml`
 
-Define the Action Endpoint so Rasa can call the action server:
-
+#### Action Endpoint so Rasa can call the action server:
+```yaml
 action_endpoint:
   url: "http://localhost:5055/webhook"
+```
 
-Then configure the Kafka Event Broker so Rasa publishes conversation events to rasa_events topic:
-
+#### Kafka Event Broker so Rasa publishes conversation events to `rasa_events` topic:
+```yaml
 event_broker:
   type: kafka
   url: "localhost:9092"
   topic: "rasa_events"
   security_protocol: "PLAINTEXT"
+```
 
-4.4 nlu.yml
+### 4.4 `nlu.yml`
 
-Add an intent for math:
-
+#### Add an intent for math:
+```yaml
 nlu:
 - intent: greet
   examples: |
@@ -198,81 +207,72 @@ nlu:
     - 2^3
     - 10 / 5
     - 2+2
+```
 
-4.5 rules.yml (or stories.yml)
+### 4.5 `rules.yml` (or `stories.yml`)
 
-Add a rule to trigger the custom action:
-
+#### Add a rule to trigger the custom action:
+```yaml
 rules:
 - rule: Handle math questions
   steps:
     - intent: ask_math
     - action: action_solve_math
+```
 
-5. Running & Testing the POC
-5.1 Run the Bot & Action Server
+## 5. Running & Testing the POC
 
-Train your updated model:
+### 5.1 Run the Bot & Action Server
 
+#### Train your updated model:
+```bash
 rasa train
+```
 
-Start the Action Server (in one terminal):
-
+#### Start Action Server (in one terminal):
+```bash
 rasa run actions
+```
 
-Start Rasa (in another terminal):
-
+#### Start Rasa (in another terminal):
+```bash
 rasa run --enable-api --debug
+```
 
-    If port 5005 is busy, choose another port:
+### 5.2 Verify Kafka Events
 
-    rasa run --port 5006 --debug
-
-5.2 Verify Kafka Events
-
-In a separate window, consume from the rasa_events topic:
-
+#### In a separate window, consume from the `rasa_events` topic:
+```bash
 docker compose exec kafka bash
 kafka-console-consumer --bootstrap-server localhost:9092 --topic rasa_events --from-beginning
+```
 
-    You can omit --from-beginning to see only new messages.
+### 5.3 Interact with the Bot
 
-5.3 Interact with the Bot
-
-Open a new terminal and run:
-
+#### Open a new terminal, run:
+```bash
 rasa shell
+```
 
-Test:
-
+Test with:
+```
 Your input -> Hello
-...
-
 Your input -> 2+2
-...
-
 Your input -> square root of 16
-...
+```
 
-Watch the console consumer (Kafka) for published events like:
+## 6. Optional: Custom Ingestion from Kafka
 
-{"event":"user","timestamp":...,"text":"2+2",...}
-{"event":"bot","timestamp":...,"text":"The answer is: 4.0",...}
+To pull user messages from Kafka instead of Rasa shell or HTTP, you can create a custom input channel (e.g., `kafka_input.py`).
 
-Confirm the logs on the Action Server or Rasa for any errors.
-6. Optional: Custom Ingestion from Kafka
+## 7. Summary & Next Steps
 
-If you want to pull user messages from Kafka (instead of using Rasa shell or HTTP), you can create a custom input channel (e.g., kafka_input.py). However, for most POCs, it’s enough to see the event broker in action (Rasa → Kafka).
-7. Summary & Next Steps
+- WSL/Ubuntu environment → Docker + Rasa + Kafka are running.
+- Rasa publishes conversation events to Kafka topic `rasa_events`.
+- Action Server processes custom math with Sympy.
+- User can chat via Rasa shell or integrated channels.
 
-    Environment: WSL/Ubuntu environment → Docker + Rasa + Kafka are running.
-    Event Publishing: Rasa publishes conversation events to Kafka topic rasa_events.
-    Action Server: Processes custom math with Sympy.
-    User Interaction: Chat via rasa shell or integrated channels (Telegram, Slack, etc.).
-    Kafka Verification: Check Kafka logs to confirm real-time events are streaming.
-
-Next Steps might include:
-
-    Logging events from Kafka into a database (Elasticsearch, PostgreSQL).
-    Analytics: building dashboards based on conversation data.
-    Production deployment with CI/CD, advanced security, load balancing.
+Next Steps:
+- Logging events from Kafka into a database (Elasticsearch, PostgreSQL).
+- Analytics: building dashboards based on conversation data.
+- Production deployment with CI/CD, advanced security, load balancing.
