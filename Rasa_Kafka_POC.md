@@ -59,6 +59,7 @@ rasa-kafka-poc/
   ├── actions/
   ├── data/
   │   ├── nlu.yml
+      ├── rules.yml
   │   └── stories.yml
   ├── domain.yml
   ├── config.yml
@@ -75,7 +76,6 @@ rasa train
 
 #### Create `docker-compose.yml` in the same folder:
 ```yaml
-version: '3.8'
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -111,7 +111,7 @@ docker compose logs -f kafka
 
 Confirm Kafka started successfully without errors.
 
-## 4. Modify Rasa Files for a Custom Math Action & Kafka Events
+## 4. Modify Rasa Files for a Custom Math Action & Kafka Events (optional)
 
 ### 4.1 `actions.py` (Example Math Solver)
 
@@ -188,14 +188,6 @@ event_broker:
 #### Add an intent for math:
 ```yaml
 nlu:
-- intent: greet
-  examples: |
-    - Hi
-    - Hello
-- intent: goodbye
-  examples: |
-    - Bye
-    - See you later
 - intent: ask_math
   examples: |
     - What is 2+2?
@@ -236,7 +228,7 @@ rasa run actions
 
 #### Start Rasa (in another terminal):
 ```bash
-rasa run --enable-api --debug
+rasa shell
 ```
 
 ### 5.2 Verify Kafka Events
